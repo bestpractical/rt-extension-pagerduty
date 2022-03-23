@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use base 'RT::Action';
 
-use HTTP::Request::Common qw(POST PUT);
+use HTTP::Request::Common qw(POST PUT GET);
 use LWP::UserAgent;
 
 sub Prepare {
@@ -169,6 +169,29 @@ sub _update {
     #       or do we just assume no pd id means no incident to worry about?
     return 1 unless $pd_id;
 
+    RT->Logger->debug("PagerDuty GET $pd_id");
+    my $req = GET(
+        'https://api.pagerduty.com/incidents/' . $pd_id,
+        'Accept',
+        'application/vnd.pagerduty+json;version=2',
+        'Authorization',
+        "Token token=$token",
+        'Content-Type',
+        'application/json',
+    );
+    my $resp = $ua->request($req);
+    if ( $resp->is_success ) {
+        my $return = JSON::from_json( $resp->decoded_content );
+        if ( $return->{incident}{status} eq $status ) {
+            RT->Logger->debug("PagerDuty incident is already $status");
+            return 1;
+        }
+    }
+    else {
+        RT->Logger->error( 'PagerDuty request failed: ' . $resp->status_line );
+        # Not return here as we still want to try to PUT even if GET fails
+    }
+
     my %content = (
         incident => {
             type   => "incident",
@@ -181,7 +204,7 @@ sub _update {
     RT->Logger->debug("PagerDuty PUT: $content");
 
 # https://developer.pagerduty.com/api-reference/b3A6Mjc0ODE0Mg-update-an-incident
-    my $req = PUT(
+    $req = PUT(
         'https://api.pagerduty.com/incidents/' . $pd_id,
         'Accept',
         'application/vnd.pagerduty+json;version=2',
@@ -194,7 +217,7 @@ sub _update {
         CONTENT => $content
     );
 
-    my $resp = $ua->request($req);
+    $resp = $ua->request($req);
 
     RT->Logger->debug( 'PagerDuty got response: '
             . $resp->status_line . ' '
