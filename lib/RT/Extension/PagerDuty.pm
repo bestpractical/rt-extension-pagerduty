@@ -54,18 +54,13 @@ Add this line:
 
     Plugin('RT::Extension::PagerDuty');
 
-=item Clear your mason cache
+To allow PagerDuty to send data to RT without a referrer:
 
-    rm -rf /opt/rt5/var/mason_data/obj
+    Set( %ReferrerComponents,
+        '/PagerDuty/WebHook.html' => 1,
+    );
 
-=item Restart your webserver
-
-=back
-
-=head1 CONFIGURATION
-
-To define the interactions between RT and PagerDuty use the C<$PagerDuty> config
-option. This option takes the form of:
+To define the interactions between RT and PagerDuty:
 
     Set(
         $PagerDuty,
@@ -87,54 +82,64 @@ option. This option takes the form of:
         }
     );
 
-The services section maps a PagerDuty service id to the token and user to use
-for API access. The C<api_token> and C<api_user> values are required. The
-optional C<create_queue> value is the RT queue name where new RT tickets should
-be created if a PagerDuty incident creates a new RT ticket. C<create_queue>
-defaults to the General queue if not specified. Use '*' as the PagerDuty service
-id to apply to multiple PagerDuty services.
+The C<services> section maps a PagerDuty service id to the token and user to
+use for API access. The C<api_token> and C<api_user> values are required. The
+optional C<create_queue> value is the RT queue name where new RT tickets
+should be created if a PagerDuty incident creates a new RT ticket.
+C<create_queue> defaults to the General queue if not specified. Use '*' as
+the C<PagerDuty Service ID> to apply to multiple PagerDuty services.
 
-The queues section maps an RT queue name to the PagerDuty service where it should
-trigger new incidents when an RT ticket is created. The C<service> value is
-required and must be a PagerDuty service id. The C<acknowledged> and C<resolved>
-optional values indicate what RT ticket status to use when an incident is
-acknowledged or resolved on PagerDuty. If not specified they default to
-acknowledged => 'open' and resolved => 'resolved'. Use '*' as the RT queue name
-to apply to multiple RT queues.
+The C<queues> section maps an RT queue name to the PagerDuty service where it
+should trigger new incidents when an RT ticket is created. The C<service>
+value is required and must be a PagerDuty service id. The C<acknowledged> and
+C<resolved> optional values indicate what RT ticket status to use when an
+incident is acknowledged or resolved on PagerDuty. If not specified they
+default to acknowledged => 'open' and resolved => 'resolved'. Use '*' as the
+C<RT Queue Name> to apply to multiple RT queues.
 
-To get the PagerDuty Service ID login to your PagerDuty account and go to
-Services -> Service Directory. Click on the Service you want the ID for and the
-the ID will be at the end of the URL. For example:
+To get the C<PagerDuty Service ID> login to your PagerDuty account and go to
+Services -> Service Directory. Click on the Service you want the ID for and
+the the ID will be at the end of the URL. For example:
 
     pagerduty.com/service-directory/P3AFFQR
 
 the Service ID is P3AFFQR.
 
-To create an api_token login to your PagerDuty account and go to
-Integrations -> API Access Keys. Click the Create New API Key button. Add a
-description and click Create Key. Copy the key and paste it into the $PagerDuty
-config as the api_token. You will not be able to view the key again but you can generate a new
-one if you lose the key.
+To create an C<api_token> login to your PagerDuty account and go to
+Integrations -> API Access Keys. Click the C<Create New API Key> button. Add
+a description and click C<Create Key>. Copy the key and paste it into the
+C<$PagerDuty> config as the C<api_token>. You will not be able to view the
+key again but you can generate a new one if you lose the key.
 
-The api_user is the email address for a valid PagerDuty user that has access to
-the PagerDuty Service you are integrating with.
+The C<api_user> is the email address for a valid PagerDuty user that has
+access to the PagerDuty Service you are integrating with.
+
+=item Clear your mason cache
+
+    rm -rf /opt/rt5/var/mason_data/obj
+
+=item Restart your webserver
+
+=back
 
 =head1 Scrips
 
 This extension will install three new Scrips that do not apply to any queues:
-C<On Acknowledge PagerDuty Acknowledge>, C<On Create PagerDuty Trigger>, and
+C<On Acknowledge PagerDuty Acknowledge>, C<On Create PagerDuty Trigger> and
 C<On Resolve PagerDuty Resolve>.
 
-Once you have added the configuration you can apply these Scrips to the queues
-you want to integrate with PagerDuty.
+You need to apply them to all the queues that integrate with PagerDuty.
 
-=head1 CUSTOM FIELDS
+=head1 Custom fields
 
-This extension adds two ticket custom fields: PagerDuty ID and PagerDuty URL.
+This extension adds two ticket custom fields: C<PagerDuty ID> and C<PagerDuty
+URL>.
+
+You need to apply them to all the queues that integrate with PagerDuty.
 
 When an RT ticket creates an incident on PagerDuty or an incident on PagerDuty
-creates an RT ticket the custom fields are automatically filled in. The PagerDuty
-URL links directly to the incident on PagerDuty.
+creates an RT ticket the custom fields are automatically filled in. The
+PagerDuty URL links directly to the incident on PagerDuty.
 
 If you would like to group the new custom fields in their own PagerDuty group
 you can use the CustomFieldGroupings config option:
@@ -146,35 +151,33 @@ you can use the CustomFieldGroupings config option:
         ],
     );
 
-=head1 WEBHOOK USAGE
-
-To call the webhook from PagerDuty:
+=head1 Set up a webhook in PagerDuty
 
 =over 4
 
+=item 1. Create an auth token in RT
 
-=item 1. Create an auth token for a user with permissions to create tickets in
-the PagerDuty create queue. To create an auth token go to
-Logged in as -> Settings -> Auth Tokens and create a new token.
+Select or create an RT user that will be used for the webhook, then create an
+auth token from the user admin page.
 
-=item 2. Go to the PagerDuty Service Integrations Webhooks
+Note that the user needs to be able to create and update tickets, usually you
+can grant C<SeeQueue>, C<CreateTicket> and C<ModifyTicket> rights to all the
+queues that integrate with PagerDuty.
 
-=item 3. Add a new webhook, using: C<https://your.rt.example/PagerDuty/WebHook.html>
-as the webhook URL. Add a custom header with the name Authorization and value
-'token #-#-abc123' where '#-#-abc123' is the value for the auth token you
+=item 2. Create the WebHook
+
+Go to the PagerDuty Service Integrations Webhooks, add a new webhook, use
+C<https://your.rt.example/PagerDuty/WebHook.html> as the webhook URL, note
+that you need to replace C<https://your.rt.example> with your real RT
+instance.
+
+Add a custom header with the name C<Authorization> and value
+C<token #-#-abc123> where C<#-#-abc123> is the value of the auth token you
 created in step one. Currently the only event subscriptions supported are
-incident.acknowledged, incident.resolved, and incident.triggered.
+C<incident.acknowledged>, C<incident.resolved> and C<incident.triggered>.
 
-=item 4. WEBHOOK WITH $RestrictReferrer ENABLED - If the RT config setting
-$RestrictReferrer is enabled then the webhook will not work without allowing it
-in the config:
-
-    Set( %ReferrerComponents,
-        '/PagerDuty/WebHook.html' => 1,
-    );
-
-=item 5. The PagerDuty Send Test Event button will send a message to the webhook
-but nothing will happen as a result
+Note that the C<Send Test Event> button sends a C<ping> event, no tickets will
+be created.
 
 =back
 
