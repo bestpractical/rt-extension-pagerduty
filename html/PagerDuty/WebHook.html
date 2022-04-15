@@ -40,6 +40,43 @@ unless ($user_obj) {
     $m->abort(401);
 }
 
+# check required rights
+my $queue_name = $service->{create_queue} // 'General';
+my $queue      = RT::Queue->new($user_obj);
+$queue->Load($queue_name);
+unless ( $queue->Id ) {
+    RT->Logger->error("Could not find queue $queue_name");
+    $m->abort(400);
+}
+
+my @missing_rights;
+for my $right (qw/SeeQueue ShowTicket CreateTicket ModifyTicket/) {
+    push @missing_rights, "Queue $queue_name: $right" unless $queue->CurrentUserHasRight($right);
+}
+
+my %cf;
+for my $name ( 'PagerDuty ID', 'PagerDuty URL' ) {
+    my $object = RT::CustomField->new($user_obj);
+    $object->LoadByName( Name => $name );
+    if ( my $id = $object->Id ) {
+        $cf{$name} = $id;
+        push @missing_rights, "CustomField $name: SeeCustomField" unless $object->CurrentUserHasRight('SeeCustomField');
+        push @missing_rights, "CustomField $name: SetInitialCustomField or ModifyCustomField"
+            unless $object->CurrentUserHasRight('SetInitialCustomField')
+            || $object->CurrentUserHasRight('ModifyCustomField');
+    }
+    else {
+        RT->Logger->error("Could not find custom field $name");
+        $m->abort(400);
+    }
+}
+
+if (@missing_rights) {
+    RT->Logger->error( "User " . $user_obj->Name . " lacks the following rights: " . join ', ', @missing_rights );
+    $m->abort(401);
+}
+
+
 # need to see if a ticket already exists for this incident
 my $tickets = RT::Tickets->new($user_obj);
 $tickets->LimitCustomField(
@@ -97,15 +134,6 @@ if ( ( $tickets->Count > 0 ) && ( $pd_event ne 'incident.triggered' ) ) {
 
 # if there is not a ticket already we only handle the triggered event
 elsif ( ( $tickets->Count == 0 ) && ( $pd_event eq 'incident.triggered' ) ) {
-    my $queue = $service->{create_queue} // 'General';
-
-    # look up ids for PagerDuty related custom fields
-    my $CF = RT::CustomField->new($user_obj);
-    $CF->LoadByName( Name => 'PagerDuty ID' );
-    my $cf_id = $CF->id;
-    $CF->LoadByName( Name => 'PagerDuty URL' );
-    my $cf_url = $CF->id;
-
     my $Ticket = RT::Ticket->new($user_obj);
     my ( $id, $Trans, $ErrMsg ) = $Ticket->Create(
         Type    => 'ticket',
@@ -113,8 +141,8 @@ elsif ( ( $tickets->Count == 0 ) && ( $pd_event eq 'incident.triggered' ) ) {
         Subject => 'PagerDuty Incident: '
             . $data->{event}{data}{service}{summary} . ' - '
             . $data->{event}{data}{title},
-        "CustomField-$cf_id"  => $data->{event}{data}{id}       // '',
-        "CustomField-$cf_url" => $data->{event}{data}{html_url} // '',
+        "CustomField-$cf{'PagerDuty ID'}"  => $data->{event}{data}{id}       // '',
+        "CustomField-$cf{'PagerDuty URL'}" => $data->{event}{data}{html_url} // '',
     );
 
     if ($id) {
