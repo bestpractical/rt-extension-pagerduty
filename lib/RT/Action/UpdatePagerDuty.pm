@@ -86,7 +86,7 @@ sub _trigger {
                 id   => $service_id,
                 type => "service_reference"
             },
-            incident_key => "[$tag #$id]",
+            incident_key => $tag,
             body         => {
                 type    => "incident_body",
                 details => $content
