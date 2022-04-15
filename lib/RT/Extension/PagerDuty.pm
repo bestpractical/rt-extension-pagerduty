@@ -206,8 +206,9 @@ Unprivileged, the calls to the webhook will redirect to Self Service and
 not work.
 
 The RT user will also need some rights in RT to update tickets. A typical
-set of rights to grant for the API user are C<SeeQueue>, C<CreateTicket>,
-C<ModifyTicket>, and C<ModifyCustomField>.
+set of rights to grant for the API user are C<SeeQueue>, C<ShowTicket>,
+C<CreateTicket>, C<ModifyTicket>, C<SeeCustomField> and
+C<SetInitialCustomField>(or C<ModifyCustomField>).
 
 =item 2. Create the WebHook
 

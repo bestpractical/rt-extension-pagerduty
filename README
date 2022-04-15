@@ -170,7 +170,8 @@ PagerDuty Webhook
 
         The RT user will also need some rights in RT to update tickets. A
         typical set of rights to grant for the API user are SeeQueue,
-        CreateTicket, ModifyTicket, and ModifyCustomField.
+        ShowTicket, CreateTicket, ModifyTicket, SeeCustomField and
+        SetInitialCustomField(or ModifyCustomField).
 
     2. Create the WebHook
         Go to the PagerDuty Service Integrations Webhooks, add a new
