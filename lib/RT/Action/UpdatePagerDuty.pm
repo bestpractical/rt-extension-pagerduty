@@ -81,7 +81,7 @@ sub _trigger {
     my %post_content = (
         incident => {
             type    => "incident",
-            title   => "$tag New Ticket $subject",
+            title   => "$tag $subject",
             service => {
                 id   => $service_id,
                 type => "service_reference"
