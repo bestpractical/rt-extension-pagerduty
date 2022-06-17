@@ -156,11 +156,19 @@ This extension will install three new Scrips:
 
 =over
 
-=item On Acknowledge PagerDuty Acknowledge
-
 =item On Create PagerDuty Trigger
 
+When a ticket is created, also create an incident in PagerDuty.
+
+=item On Acknowledge PagerDuty Acknowledge
+
+On any transition from initial status (often 'new') to an active status
+(often 'open'), send a message to PagerDuty to set the incident as
+'Acknowledged'.
+
 =item On Resolve PagerDuty Resolve
+
+When a ticket is resolved, resolve the incident in PagerDuty.
 
 =back
 

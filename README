@@ -128,9 +128,16 @@ RT Scrips and Custom Fields
   Scrips
     This extension will install three new Scrips:
 
-    On Acknowledge PagerDuty Acknowledge
     On Create PagerDuty Trigger
+        When a ticket is created, also create an incident in PagerDuty.
+
+    On Acknowledge PagerDuty Acknowledge
+        On any transition from initial status (often 'new') to an active
+        status (often 'open'), send a message to PagerDuty to set the
+        incident as 'Acknowledged'.
+
     On Resolve PagerDuty Resolve
+        When a ticket is resolved, resolve the incident in PagerDuty.
 
     They are not applied to any queues when they are initially installed.
     Edit the scrips and click "Applies To" to select the queues that should
