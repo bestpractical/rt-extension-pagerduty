@@ -22,8 +22,8 @@ our @ScripActions = (
 our @ScripConditions = (
     {   Name        => 'On Acknowledge',
         Description => 'When a ticket is changed from an initial status',
-        ExecModule  => 'OnAcknowledge',
-        Argument    => '',
+        ExecModule  => 'StatusChange',
+        Argument    => 'old: initial; new: active',
         ApplicableTransTypes => 'Status',
     },
 );
